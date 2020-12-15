@@ -3505,6 +3505,39 @@ static int mov_write_tmpo_tag(AVIOContext *pb, AVFormatContext *s)
     return size;
 }
 
+/* iTunes iTunSMPB info */
+static int mov_write_iTunSMPB_tag(AVIOContext *pb, AVFormatContext *s)
+{
+    AVDictionaryEntry *t = av_dict_get(s->metadata, "iTunSMPB", NULL, 0);
+    int size = 0;
+    if (t) {
+        int64_t pos = avio_tell(pb), entry_pos;
+        // write custom tag
+        avio_wb32(pb, 0);
+        ffio_wfourcc(pb, "----");
+        // write mean
+        const char *mean = "com.apple.iTunes\0";
+        entry_pos = avio_tell(pb);
+        avio_wb32(pb, 0); /* size */
+        ffio_wfourcc(pb, "mean");
+        avio_wb32(pb, 0); /* version & flags */
+        avio_write(pb, mean, strlen(mean));
+        update_size(pb, entry_pos); // update mean tag size
+        // write name
+        entry_pos = avio_tell(pb);
+        avio_wb32(pb, 0); /* size */
+        ffio_wfourcc(pb, "name");
+        avio_wb32(pb, 0); /* version & flags */
+        avio_write(pb, t->key, strlen(t->key));
+        update_size(pb, entry_pos); // update name tag size
+        // write data
+        mov_write_string_data_tag(pb, t->value, 0, 1); /* data */
+        // update custom tag size
+        size = update_size(pb, pos);
+    }
+    return size;
+}
+
 /* 3GPP TS 26.244 */
 static int mov_write_loci_tag(AVFormatContext *s, AVIOContext *pb)
 {
@@ -3676,6 +3709,7 @@ static int mov_write_ilst_tag(AVIOContext *pb, MOVMuxContext *mov,
     mov_write_trkn_tag(pb, mov, s, 0); // track number
     mov_write_trkn_tag(pb, mov, s, 1); // disc number
     mov_write_tmpo_tag(pb, s);
+    mov_write_iTunSMPB_tag(pb, s);  // gapless
     return update_size(pb, pos);
 }
 
