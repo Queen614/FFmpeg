@@ -3592,7 +3592,8 @@ static int mov_write_ilst_tag(AVIOContext *pb, MOVMuxContext *mov,
     mov_write_trkn_tag(pb, mov, s, 0); // track number
     mov_write_trkn_tag(pb, mov, s, 1); // disc number
     mov_write_tmpo_tag(pb, s);
-    mov_write_iTunSMPB_tag(pb, s);
+    if (!mov->use_editlist) // don't use iTunSMPB and the ISO standard together
+        mov_write_iTunSMPB_tag(pb, s);
     return update_size(pb, pos);
 }
 
